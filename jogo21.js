@@ -1,92 +1,99 @@
 // Função pra gerar as cartas de 0 a 10 e depois somar adicionando no array
-var resultado = []
-const cartas = function () {
+const readline = require('readline')
 
-    for(let contador = 0; contador < 2; contador ++) {
-        let cartas = Math.floor(Math.random() * 10 + 1)
-        console.log(`Carta numero ${contador+1} = ${cartas}`)
-        resultado.push(cartas)
-        }
-    var reducer = function (accumulator, currentValue) { return accumulator + currentValue }
-    console.log(`Resultado das cartas: ${resultado.reduce(reducer)}`)
+const leitor = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+})
+
+const it = leitor[Symbol.asyncIterator]()
+
+const entrada = async () => (await it.next()).value
+
+const valorTotal = (valorArray) => valorArray.reduce((a,b) => a + b, 0)
+
+const apresentarResultado = (valor) => 
+  console.log(`Resultado das cartas: ${valor}`)
+
+const comprarCarta = () => Math.floor(Math.random() * 13 + 1)
+
+const apresentarCarta = (valor) => console.log(`Carta recebida foi ${valor}`)
+
+const darDuasCartas = () => [comprarCarta(), comprarCarta()]
+
+const perguntar = async (mensagem) => {
+  leitor.resume()
+
+  console.log(mensagem)
+  const resposta = await entrada()
+
+  leitor.pause()
+
+  return resposta
 }
 
+const fluxoCompraDeCartas = async (cartas) => {
+  leitor.resume()
 
-// COMPRAR MAIS UMA CARTA
-var resultadocomprarcartas = function () { 
-    var reducer = function (accumulator, currentValue) { return accumulator + currentValue }
-    for(let contador = 0; contador < 1; contador ++) {
-        let cartas = Math.floor(Math.random() * 10 + 1)
-        console.log(`Você comprou a carta: ${cartas}`)
-        resultado.push(cartas)
-        }
-    console.log(`TOTAL = ${resultado.reduce(reducer)}`) 
-    if (resultado.reduce(reducer) < 21 ) {
-        comprarcartas()
-    } else if (resultado.reduce(reducer) > 21) {
-        console.log("VOCÊ ESTOUROU!!")
-    } else if (resultado.reduce(reducer) == 21)
-    console.log("VOCÊ VENCEU!!")
-}
+  const resposta = await perguntar("Deseja comprar mais cartas?  \n[1]- SIM \n[2]- NÃO \n")
+   
+  if (resposta === '1') {
 
-
-
-//INPUT NO CONSOLE
-const input = function () {
-    const readline = require('readline')
-    const resp = ""
-
-    const leitor = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    })
-
-    leitor.question("PRONTO PARA JOGAR? \n[1]- SIM \n[2]- NÃO: \n", function(answer) {
-        const resp = answer
-        leitor.close()
-        
-
-// Testando se o jogador quer jogar ou não.
-    if (resp == 1) {
-        cartas()
-        comprarcartas()
-    } else if (resp == 2) {
-        console.log("Jogo Finalizado.")
-        leitor.close()
-    } else {
-        console.log("Numero não encontrado. Tente novamente")
-        input()
-    }
-    })
-}
-
-
-// Perguntar se quer mais cartas
-const comprarcartas = function () {
-    const readline = require('readline')
-    const resp = ""
-
-    const leitor = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    })
-
-    leitor.question("Deseja comprar mais cartas?  \n[1]- SIM \n[2]- NÃO: \n", function(answer) {
-        const resp = answer
-        leitor.close()
-
-// Input pra ver a reposta do jogador
-        if (resp == 1) {
-            resultadocomprarcartas()
-        } else {
-            console.log("Numero Inválido.")
-        }
-    })
+    const novaCarta = comprarCarta()
+    apresentarCarta(novaCarta)
     
+    cartas.push(novaCarta)
+  } else {
+    console.log("Numero Inválido.")
+  }
+
+  leitor.pause()
+
+  return cartas
 }
 
-console.log("==========================")
-console.log("|  BEM-VINDO AO JOGO 21  |")
-console.log("==========================")
+const testarEstadoDoJogo = (valor) => {
+  if (valor > 21) return "VOCÊ ESTOUROU!!"
+  if (valor == 21) return "VOCÊ VENCEU!!"
+  return 'CONTINUAR'
+}
 
-input() 
+const jogo = async () => {
+  const cartas = darDuasCartas()
+
+  cartas.forEach(apresentarCarta)
+
+  let estado = 'CONTINUAR'
+  do{
+    const somaDasCartas = valorTotal(cartas)
+    apresentarResultado(somaDasCartas)
+
+    estado = testarEstadoDoJogo(somaDasCartas)
+          
+    if (estado === 'CONTINUAR') cartas.concat( await fluxoCompraDeCartas(cartas))
+
+  }while(estado === 'CONTINUAR')
+
+  console.log(estado)
+}
+
+const iniciar = async function () {
+  leitor.resume()
+  
+  console.log("==========================\n|  BEM-VINDO AO JOGO 21  |\n==========================")
+
+  const iniciarOJogo = await perguntar('PRONTO PARA JOGAR? \n[1]- SIM \n[2]- NÃO \n')
+
+  if (iniciarOJogo === '1'){
+    await jogo()
+  } else if (iniciarOJogo === '2') {
+      console.log("Jogo Finalizado.")
+      leitor.close()
+  } else {
+    console.log("Numero não encontrado. Tente novamente")
+    leitor.pause()
+    await iniciar()
+  }
+}
+
+iniciar() 
